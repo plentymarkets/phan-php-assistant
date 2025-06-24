@@ -47,5 +47,4 @@ ENV PHP_PATH=php
 ENV PHAN_PATH=/../../vendor/phan/phan/phan
 ENV COMPOSER_PATH=/../../composer.phar
 
-ENTRYPOINT ["php", "artisan"]
-CMD []
+CMD ["php", "artisan"]
