@@ -1,25 +1,26 @@
 # 🐘 PHP 8.2 Compatibility Checker
 
-This CLI tool statically analyzes PHP plugins to check for compatibility with **PHP 8.2**, using [Phan](https://github.com/phan/phan). It’s packaged as a lightweight Docker container for easy use in local development and CI environments.
+This CLI tool statically analyzes PHP plugins to check for compatibility with **PHP 8.2**, using [Phan](https://github.com/phan/phan) and optionally provides refactor suggestions via [Rector](https://github.com/rectorphp/rector). It’s packaged as a lightweight Docker container for easy use in local development and CI environments.
 
 ---
 
 ## 📦 Features
 
-- ✅ Detects removed functions, syntax errors, and deprecated features
+- ✅ Detects removed functions, syntax errors, and deprecated features using **Phan**
+- 🛠️ Provides automatic upgrade suggestions with **Rector** (e.g. readonly properties, type declarations)
 - 🔍 Analyzes plugin source code (`src/`, `resources/`, etc.)
 - 🧠 Uses the official **Plenty SDK** (via git clone) to resolve unknown class references
 - 🪄 Automatically generates or updates `.phan/config.php` per plugin
-- 🧩 Keeps user-defined Phan settings (merges custom config with required paths)
-- 🐳 Runs in an isolated Docker environment
-- 📄 Outputs detailed compatibility reports
+- 🧩 Merges custom user-defined Phan settings with required config
+- 🐳 Runs inside an isolated Docker container
+- 📄 Outputs detailed compatibility and refactor reports
 
 ---
 
 ## 📁 Expected Folder Structure
 
-
-```Your local 'plugins/' folder should contain one or more plugins:
+```text
+Your local 'plugins/' folder should contain one or more plugins:
 plugins/
 ├── plugin-1/
 │   ├── plugin.json
@@ -30,62 +31,80 @@ plugins/
 ├── plugin-2/
 │   └── ...
 ```
+Each plugin must include a plugin.json file to be considered valid.
 
+🐳 Run the Compatibility Checker
 
-
-> Each plugin **must include** a `plugin.json` file to be considered valid.
-
----
-
-## 🐳 Run the Compatibility Checker
-
-First, make sure you pull the latest image:
-
+First, pull the latest image:
 ```bash
 docker pull ghcr.io/plentymarkets/phan-php-assistant:main
 ```
 Then, from the parent folder of plugins/, run the compatibility check:
 ```bash
-docker run --rm -v $(pwd)/plugins:/plugins php-compat-checker check:compatibility --path=/plugins
+docker run --rm -v $(pwd)/plugins:/plugins php-compat-checker php artisan check:compatibility --path=/plugins
 ```
-This will:
-
-Clone the Plenty SDK (only once)
-Link the SDK into each plugin for symbol resolution (not for compatibility check itself)
-Merge .phan/config.php per plugin: preserving user config, adding required directory_list and file_list
-Run static analysis using Phan
-Display compatibility results per plugin
-
+To also run Rector after Phan succeeds:
+```bash
+docker run --rm -v $(pwd)/plugins:/plugins php-compat-checker php artisan check:compatibility --path=/plugins --withRector
+```
+Or run Rector analysis directly:
+```bash
+docker run --rm -v $(pwd)/plugins:/plugins php-compat-checker php artisan check:refactor --path=/plugins
+```
 ✅ Sample Output
 ```bash
 ==== [plugin-sdk-test] ====
 ❌ Incompatible
 src/Controllers/TestController.php:10 PhanUndeclaredExtendedClass Class extends undeclared class \Plenty\Plugin\Controller
 src/Providers/PluginRouteServiceProvider.php:16 PhanUndeclaredTypeThrowsType @throws type of map has undeclared type \Plenty\Plugin\Routing\Exceptions\RouteReservedException
+
+==== [plugin-sdk-test] Rector ====
+✅ Rector completed successfully
+
+1 file with changes
+--------------------
+src/Controllers/TestController.php
+- Added readonly property suggestion
+Only actual plugin files (e.g., src/, resources/) are analyzed. SDK is used for symbol resolution only.
 ```
-Only actual plugin files (src/, resources/) are analyzed. SDK is used only for reference resolution, not scanned directly.
 
 ⚙️ Phan Config: How It Works
 
-If .phan/config.php already exists in a plugin:
-Its settings are preserved
-directory_list and file_list are automatically extended with detected paths
-Any redundant default use statements are stripped (e.g., unused use Phan\Issue)
-If no config exists:
-A fresh .phan/config.php will be generated based on config.sample.php, then updated with paths
+If .phan/config.php already exists:
+
+Your custom settings are preserved
+directory_list and file_list are updated automatically
+Unused default use statements are removed
+If .phan/config.php is missing:
+
+A new config is generated from a template and updated automatically
 You do not need to create directory_list.php or file_list.php manually.
+
+⚙️ Rector Config: How It Works
+
+If you pass --withRector or run check:refactor:
+
+Rector scans src/ and resources/ for each plugin
+Uses a shared rector.php config from the app root
+Does not modify files (uses --dry-run mode by default)
+To enable file modifications, change the service to remove --dry-run.
 
 📤 CI Integration (Optional)
 
-- name: Check PHP 8.2 Compatibility
+Example GitHub Actions step:
 ```bash
+- name: Check PHP 8.2 Compatibility
   run: |
     docker pull ghcr.io/plentymarkets/phan-php-assistant:main
-    docker run --rm -v $(pwd)/plugins:/plugins php-compat-checker check:compatibility --path=/plugins
+    docker run --rm -v $(pwd)/plugins:/plugins php-compat-checker php artisan check:compatibility --path=/plugins
 ```
-
 🧪 Troubleshooting
 
-✅ Class not found? Ensure Plenty SDK is cloned (done automatically).
-⚠️ PhanUndeclaredTypeThrowsType? You can stub the exception class if not present in SDK.
-⛔ False positive? Check your config’s file_list and symbolic links.
+✅ Class not found? → SDK is cloned automatically; ensure plugin paths are correct
+
+⚠️ Undeclared exception type? → Stub it in your plugin or SDK fork
+
+🔄 Want Rector to auto-fix files? → Remove --dry-run in the Rector service command
+
+❌ Command not found? → Always prefix with php artisan inside the container
+

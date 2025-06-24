@@ -3,13 +3,13 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 use App\Services\CompatibilityCheckerService;
 
 class CheckCompatibilityCommand extends Command
 {
-    protected $signature = 'check:compatibility {--path= : Path to plugin(s) directory}';
+    protected $signature = 'check:compatibility {--path= : Path to plugin(s) directory} {--withRector : Run Rector analysis after Phan}';
     protected $description = 'Check PHP 8.2 compatibility for plugin(s)';
-
 
     public function handle(): void
     {
@@ -22,6 +22,9 @@ class CheckCompatibilityCommand extends Command
         }
 
         $results = $checkerService->check($path);
+
+        $allSuccessful = true;
+
         foreach ($results as $plugin => $result) {
             $this->line("\n==== [$plugin] ====");
             $this->line($result['success'] ? "✅ Compatible" : "❌ Incompatible");
@@ -32,8 +35,26 @@ class CheckCompatibilityCommand extends Command
                 $this->line($result['output']);
             }
 
-            if (!$result['success'] && !empty($result['errorOutput'])) {
-                $this->error(trim($result['errorOutput']));
+            if (!$result['success']) {
+                $allSuccessful = false;
+            }
+        }
+
+        if ($this->option('withRector')) {
+            if ($allSuccessful) {
+                $this->info("\n--- All plugins passed. Running Rector analysis... ---");
+
+                $code = Artisan::call('check:refactor', [
+                    '--path' => $path,
+                ]);
+
+                $this->line(Artisan::output());
+
+                if ($code !== 0) {
+                    $this->warn('Rector finished with warnings or errors.');
+                }
+            } else {
+                $this->warn("\nRector analysis skipped because one or more plugins failed the Phan check.");
             }
         }
     }
