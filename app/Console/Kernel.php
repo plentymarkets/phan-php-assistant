@@ -3,6 +3,7 @@
 namespace App\Console;
 
 use App\Console\Commands\CheckCompatibilityCommand;
+use App\Console\Commands\CheckRefactorCommand;
 use Illuminate\Console\Scheduling\Schedule;
 use Laravel\Lumen\Console\Kernel as ConsoleKernel;
 
@@ -15,6 +16,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         CheckCompatibilityCommand::class,
+        CheckRefactorCommand::class
     ];
 
     /**

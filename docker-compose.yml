@@ -1,0 +1,9 @@
+services:
+  php-compat-checker:
+    build:
+      context: .
+    container_name: php-compat-checker
+    volumes:
+      - ./plugins:/plugins
+    working_dir: /app
+    command: ["tail", "-f", "/dev/null"]
