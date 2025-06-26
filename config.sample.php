@@ -39,6 +39,7 @@ return [
     'suppress_issue_types' => [
         'PhanPossiblyUndeclaredVariable',
         'PhanUndeclaredProperty',
+        'PhanUndeclaredTypeThrowsType'
     ],
 
     // Only report this specific type of issue, in addition to what's not suppressed.
