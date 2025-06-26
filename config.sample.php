@@ -36,10 +36,10 @@ return [
     'ignore_undeclared_variables_in_global_scope' => true,
 
     // Suppress specific issue types to avoid noise during analysis.
-//    'suppress_issue_types' => [
-//        'PhanPossiblyUndeclaredVariable',
-//        'PhanUndeclaredProperty',
-//    ],
+    'suppress_issue_types' => [
+        'PhanPossiblyUndeclaredVariable',
+        'PhanUndeclaredProperty',
+    ],
 
     // Only report this specific type of issue, in addition to what's not suppressed.
     // Here, we explicitly allow syntax errors to show up regardless.

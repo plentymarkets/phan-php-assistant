@@ -41,15 +41,15 @@ docker pull ghcr.io/plentymarkets/phan-php-assistant:main
 ```
 Then, from the parent folder of plugins/, run the compatibility check:
 ```bash
-docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main check:compatibility --path=/plugin
+docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:compatibility --path=/plugins
 ```
 To also run Rector after Phan succeeds:
 ```bash
-docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main check:compatibility --path=/plugin --withRector
+docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:compatibility --path=/plugins --withRector
 ```
 Or run Rector analysis directly:
 ```bash
-docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main check:refactor --path=/plugins
+docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:refactor --path=/plugins
 ```
 ✅ Sample Output
 ```bash
