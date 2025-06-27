@@ -2,24 +2,20 @@
 
 namespace App\Console\Commands;
 
+use App\Support\PathResolver;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use App\Services\CompatibilityCheckerService;
 
 class CheckCompatibilityCommand extends Command
 {
-    protected $signature = 'check:compatibility {--path= : Path to plugin(s) directory} {--withRector : Run Rector analysis after Phan}';
+    protected $signature = 'check:compatibility {--withRector : Run Rector analysis after Phan}';
     protected $description = 'Check PHP 8.2 compatibility for plugin(s)';
 
     public function handle(): void
     {
         $checkerService = app(CompatibilityCheckerService::class);
-        $path = $this->option('path');
-
-        if (!$path || !is_dir($path)) {
-            $this->error('Invalid or missing path.');
-            return;
-        }
+        $path = PathResolver::resolve();
 
         $results = $checkerService->check($path);
 
@@ -44,9 +40,7 @@ class CheckCompatibilityCommand extends Command
             if ($allSuccessful) {
                 $this->info("\n--- All plugins passed. Running Rector analysis... ---");
 
-                $code = Artisan::call('check:refactor', [
-                    '--path' => $path,
-                ]);
+                $code = Artisan::call('check:refactor');
 
                 $this->line(Artisan::output());
 
