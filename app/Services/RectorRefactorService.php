@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\PathResolver;
 use Symfony\Component\Process\Process;
 
 class RectorRefactorService
@@ -12,12 +13,6 @@ class RectorRefactorService
      */
     public function run(string $inputPath): array
     {
-        $inputPath = rtrim($inputPath, '/');
-
-        if (!is_dir($inputPath)) {
-            throw new \InvalidArgumentException("Invalid path: $inputPath");
-        }
-
         $pluginFolders = array_filter(glob($inputPath . '/*'), 'is_dir');
 
         if (empty($pluginFolders)) {

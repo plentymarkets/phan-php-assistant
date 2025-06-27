@@ -20,7 +20,6 @@ This CLI tool statically analyzes PHP plugins to check for compatibility with **
 ## 📁 Expected Folder Structure
 
 ```text
-Your local 'plugins/' folder should contain one or more plugins:
 plugins/
 ├── plugin-1/
 │   ├── plugin.json
@@ -32,24 +31,30 @@ plugins/
 │   └── ...
 ```
 Each plugin must include a plugin.json file to be considered valid.
-
 🐳 Run the Compatibility Checker
 
 First, pull the latest image:
 ```bash
 docker pull ghcr.io/plentymarkets/phan-php-assistant:main
+Then, run the compatibility check by mounting your plugin folder into the container at /plugins.
 ```
-Then, from the parent folder of plugins/, run the compatibility check:
+✅ Option 1 – You're in the project root, and plugins/ is a subfolder:
 ```bash
-docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:compatibility --path=/plugins
+docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:compatibility
 ```
-To also run Rector after Phan succeeds:
+✅ Option 2 – You’re anywhere on disk and want to mount a full absolute path:
 ```bash
-docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:compatibility --path=/plugins --withRector
+docker run --rm -v /absolute/path/to/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:compatibility
 ```
-Or run Rector analysis directly:
+📌 Important: The path on the left (host) can be relative or absolute,
+but the container always expects the plugins/ directory to be available at /plugins.
+➕ To also run Rector after Phan passes:
 ```bash
-docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:refactor --path=/plugins
+docker run --rm -v /absolute/path/to/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:compatibility --withRector
+```
+🔁 Or run only Rector analysis directly:
+```bash
+docker run --rm -v /absolute/path/to/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:refactor
 ```
 ✅ Sample Output
 ```bash
@@ -65,29 +70,32 @@ src/Providers/PluginRouteServiceProvider.php:16 PhanUndeclaredTypeThrowsType @th
 --------------------
 src/Controllers/TestController.php
 - Added readonly property suggestion
-Only actual plugin files (e.g., src/, resources/) are analyzed. SDK is used for symbol resolution only.
+Only actual plugin files (e.g., src/, resources/) are analyzed.
+SDK is used for symbol resolution only.
 ```
-
 ⚙️ Phan Config: How It Works
 
 If .phan/config.php already exists:
 
 Your custom settings are preserved
+
 directory_list and file_list are updated automatically
-Unused default use statements are removed
+
 If .phan/config.php is missing:
 
-A new config is generated from a template and updated automatically
-You do not need to create directory_list.php or file_list.php manually.
+A new config is generated and updated automatically
+
+✅ You do not need to manually create directory_list.php or file_list.php.
+
+---
 
 ⚙️ Rector Config: How It Works
 
-If you pass --withRector or run check:refactor:
+Triggered with --withRector or check:refactor
 
-Rector scans src/ and resources/ for each plugin
-Uses a shared rector.php config from the app root
-Does not modify files (uses --dry-run mode by default)
-To enable file modifications, change the service to remove --dry-run.
+Scans src/ and resources/ in each plugin
+
+Uses shared rector.php config from the app root
 
 📤 CI Integration (Optional)
 
@@ -96,15 +104,19 @@ Example GitHub Actions step:
 - name: Check PHP 8.2 Compatibility
   run: |
     docker pull ghcr.io/plentymarkets/phan-php-assistant:main
-    docker run --rm -v $(pwd)/plugins:/plugins php-compat-checker php artisan check:compatibility --path=/plugins
+    docker run --rm -v $(pwd)/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:compatibility
 ```
+
+---
+
 🧪 Troubleshooting
 
-✅ Class not found? → SDK is cloned automatically; ensure plugin paths are correct
+Issue	Solution
 
-⚠️ Undeclared exception type? → Stub it in your plugin or SDK fork
+✅ Class not found	SDK is auto-cloned; ensure correct plugin structure
 
-🔄 Want Rector to auto-fix files? → Remove --dry-run in the Rector service command
+⚠️ Undeclared exception type	Add a stub class or extend the SDK
 
-❌ Command not found? → Always prefix with php artisan inside the container
+🔄 Want Rector to auto-fix files?	Remove --dry-run in RectorRefactorService
 
+❌ Command not found	Always use php artisan inside the container

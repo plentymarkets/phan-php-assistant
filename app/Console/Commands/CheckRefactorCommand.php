@@ -2,22 +2,18 @@
 
 namespace App\Console\Commands;
 
+use App\Support\PathResolver;
 use Illuminate\Console\Command;
 use App\Services\RectorRefactorService;
 
 class CheckRefactorCommand extends Command
 {
-    protected $signature = 'check:refactor {--path= : Path to plugin(s) directory}';
+    protected $signature = 'check:refactor';
     protected $description = 'Run Rector refactor suggestions for plugin(s)';
 
     public function handle(): void
     {
-        $path = $this->option('path');
-
-        if (!$path || !is_dir($path)) {
-            $this->error('Invalid or missing path.');
-            return;
-        }
+        $path = PathResolver::resolve();
 
         /** @var RectorRefactorService $service */
         $service = app(RectorRefactorService::class);

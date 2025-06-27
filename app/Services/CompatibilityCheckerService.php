@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\PathResolver;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Process;
 
@@ -13,12 +14,6 @@ class CompatibilityCheckerService
      */
     public function check(string $inputPath): array
     {
-        $inputPath = rtrim($inputPath, '/');
-
-        if (!is_dir($inputPath)) {
-            throw new \InvalidArgumentException("Invalid plugins path: {$inputPath}");
-        }
-
         $tmpBasePath = '/tmp/compat-check/' . uniqid('plugin_', true);
         $tmpPluginsPath = $tmpBasePath;
         mkdir($tmpPluginsPath, 0777, true);
