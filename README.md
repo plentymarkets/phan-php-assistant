@@ -54,7 +54,7 @@ docker run --rm -v /absolute/path/to/plugins:/plugins ghcr.io/plentymarkets/phan
 ```
 🔁 Or run only Rector analysis directly:
 ```bash
-docker run --rm -v /absolute/path/to/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:refactor
+docker run --rm -v /absolute/path/to/plugins:/plugins ghcr.io/plentymarkets/phan-php-assistant:main php artisan check:rector
 ```
 ✅ Sample Output
 ```bash
@@ -91,7 +91,7 @@ A new config is generated and updated automatically
 
 ⚙️ Rector Config: How It Works
 
-Triggered with --withRector or check:refactor
+Triggered with --withRector or check:rector
 
 Scans src/ and resources/ in each plugin
 
