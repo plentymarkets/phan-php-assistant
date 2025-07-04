@@ -8,7 +8,7 @@ use App\Services\RectorRefactorService;
 
 class CheckRefactorCommand extends Command
 {
-    protected $signature = 'check:refactor';
+    protected $signature = 'check:rector';
     protected $description = 'Run Rector refactor suggestions for plugin(s)';
 
     public function handle(): void
