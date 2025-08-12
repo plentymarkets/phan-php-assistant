@@ -33,6 +33,19 @@ plugins/
 Each plugin must include a plugin.json file to be considered valid.
 🐳 Run the Compatibility Checker
 
+
+```bash
+# Standard pull
+docker pull ghcr.io/plentymarkets/phan-php-assistant:main
+```
+If you get:
+```bash 
+no matching manifest for linux/amd64 in the manifest list entries
+```
+pull the ARM64 variant explicitly:
+```bash 
+docker pull --platform=linux/arm64 ghcr.io/plentymarkets/phan-php-assistant:main
+```
 First, pull the latest image:
 ```bash
 docker pull ghcr.io/plentymarkets/phan-php-assistant:main
