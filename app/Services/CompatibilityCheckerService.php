@@ -43,9 +43,6 @@ class CompatibilityCheckerService
             }
 
             $pluginPhanConfigPath = $destination . '/.phan/config.php';
-            if (!file_exists($pluginPhanConfigPath)) {
-                throw new \RuntimeException("⚠️  Missing .phan/config.php in plugin: {$pluginName}.");
-            }
 
             $this->updatePluginPhanConfig($pluginPhanConfigPath, $destination, $sdkPath);
             $results[$pluginName] = $this->runPhan($destination);
@@ -99,8 +96,24 @@ class CompatibilityCheckerService
      */
     private function updatePluginPhanConfig(string $configPath, string $pluginRootPath, string $sdkPath): void
     {
-        /** @var array $config */
-        $config = include $configPath;
+        $sampleConfigPath = base_path('config.sample.php');
+        if (!file_exists($sampleConfigPath)) {
+            throw new \RuntimeException("Sample config not found at: {$sampleConfigPath}");
+        }
+
+        /** @var array $baseConfig */
+        $baseConfig = include $sampleConfigPath;
+        if (!is_array($baseConfig)) {
+            throw new \RuntimeException("config.sample.php must return an array.");
+        }
+
+        if (file_exists($configPath)) {
+            /** @var array $pluginConfig */
+            $pluginConfig = include $configPath;
+            if (is_array($pluginConfig)) {
+                $baseConfig = $this->mergePhanConfig($baseConfig, $pluginConfig);
+            }
+        }
 
         $realBasePath = realpath($pluginRootPath);
         if (!$realBasePath) {
@@ -137,29 +150,34 @@ class CompatibilityCheckerService
             }
         }
 
-
         if (is_dir($sdkPath)) {
-            $config['directory_list'][] = $sdkPath;
-            $config['exclude_analysis_directory_list'][] = $sdkPath;
+            $baseConfig['directory_list'][] = $sdkPath;
+            $baseConfig['exclude_analysis_directory_list'][] = $sdkPath;
         }
 
-        $config['directory_list'] = array_values(array_unique(array_filter(
-            array_merge($config['directory_list'] ?? [], $directoryList),
+        $baseConfig['directory_list'] = array_values(array_unique(array_filter(
+            array_merge($baseConfig['directory_list'] ?? [], $directoryList),
             fn($dir) => !empty($dir)
         )));
 
-        $config['file_list'] = array_values(array_unique(array_filter(
-            array_merge($config['file_list'] ?? [], $fileList),
+        $baseConfig['file_list'] = array_values(array_unique(array_filter(
+            array_merge($baseConfig['file_list'] ?? [], $fileList),
             fn($file) => !empty($file)
         )));
 
-        if (empty($config['directory_list'])) {
+        if (empty($baseConfig['directory_list'])) {
             throw new \RuntimeException("Phan config has empty or invalid directory_list for plugin at: {$pluginRootPath}");
         }
 
-        $exported = "<?php\n\nuse Phan\\Issue;\n\nreturn " . var_export($config, true) . ";\n";
+        // Creăm folderul .phan dacă lipsește
+        if (!is_dir(dirname($configPath))) {
+            mkdir(dirname($configPath), 0777, true);
+        }
+
+        $exported = "<?php\n\nuse Phan\\Issue;\n\nreturn " . var_export($baseConfig, true) . ";\n";
         file_put_contents($configPath, $exported);
     }
+
 
 
     /**
@@ -206,4 +224,30 @@ class CompatibilityCheckerService
             throw new \RuntimeException("Failed to clone SDK: " . $process->getErrorOutput());
         }
     }
+
+    /**
+     * @param array $baseConfig
+     * @param array $pluginConfig
+     * @return array
+     */
+    private function mergePhanConfig(array $baseConfig, array $pluginConfig): array
+    {
+        foreach ($pluginConfig as $settingKey => $pluginValue) {
+            if (!array_key_exists($settingKey, $baseConfig)) {
+                $baseConfig[$settingKey] = $pluginValue;
+                continue;
+            }
+
+            if (is_array($baseConfig[$settingKey]) && is_array($pluginValue)) {
+                $baseConfig[$settingKey] = array_values(array_unique(
+                    array_merge($baseConfig[$settingKey], $pluginValue)
+                ));
+            } else {
+                $baseConfig[$settingKey] = $pluginValue;
+            }
+        }
+
+        return $baseConfig;
+    }
+
 }
